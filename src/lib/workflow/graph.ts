@@ -7,6 +7,76 @@ import { prisma } from "@/lib/db";
 import { scanRepository } from "@/lib/intelligence/scanner";
 import { getCachedRepoMap } from "@/lib/intelligence/cache";
 import { emitEvent } from "@/lib/workflow/event-emitter";
+import { getRunSignal, clearRunSignal } from "@/lib/queue/run-signals";
+
+// ─── Signal Checking ────────────────────────────────────────────────
+
+class CancelledError extends Error {
+  constructor(runId: string) {
+    super(`Run ${runId} was cancelled by user`);
+    this.name = "CancelledError";
+  }
+}
+
+async function checkSignal(runId: string): Promise<void> {
+  const signal = await getRunSignal(runId);
+
+  if (signal === "cancel") {
+    await clearRunSignal(runId);
+    await prisma.run.update({
+      where: { id: runId },
+      data: { status: "CANCELLED", completedAt: new Date() },
+    });
+    await emitEvent({
+      runId,
+      agent: "System",
+      message: "⛔ Task cancelled by user",
+      level: "WARN",
+    });
+    throw new CancelledError(runId);
+  }
+
+  if (signal === "pause") {
+    await prisma.run.update({
+      where: { id: runId },
+      data: { status: "PAUSED" },
+    });
+    await emitEvent({
+      runId,
+      agent: "System",
+      message: "⏸ Task paused by user",
+    });
+
+    // Poll until resumed or cancelled
+    while (true) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const current = await getRunSignal(runId);
+      if (current === "resume" || current === null) {
+        await clearRunSignal(runId);
+        await emitEvent({
+          runId,
+          agent: "System",
+          message: "▶ Task resumed",
+        });
+        break;
+      }
+      if (current === "cancel") {
+        await clearRunSignal(runId);
+        await prisma.run.update({
+          where: { id: runId },
+          data: { status: "CANCELLED", completedAt: new Date() },
+        });
+        await emitEvent({
+          runId,
+          agent: "System",
+          message: "⛔ Task cancelled by user",
+          level: "WARN",
+        });
+        throw new CancelledError(runId);
+      }
+    }
+  }
+}
 
 // ─── Node Wrappers ──────────────────────────────────────────────────
 
@@ -33,6 +103,7 @@ async function initNode(state: AgentStateType): Promise<Partial<AgentStateType>>
 }
 
 async function gitSetupNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "PENDING" },
@@ -41,6 +112,7 @@ async function gitSetupNode(state: AgentStateType): Promise<Partial<AgentStateTy
 }
 
 async function plannerNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "PLANNING" },
@@ -59,6 +131,7 @@ async function plannerNode(state: AgentStateType): Promise<Partial<AgentStateTyp
 }
 
 async function analyzerNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "ANALYZING" },
@@ -76,6 +149,7 @@ async function analyzerNode(state: AgentStateType): Promise<Partial<AgentStateTy
 }
 
 async function coderNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "CODING" },
@@ -84,6 +158,7 @@ async function coderNode(state: AgentStateType): Promise<Partial<AgentStateType>
 }
 
 async function buildCheckNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "BUILDING" },
@@ -122,6 +197,7 @@ async function buildCheckNode(state: AgentStateType): Promise<Partial<AgentState
 }
 
 async function reviewerNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "REVIEWING" },
@@ -139,6 +215,7 @@ async function reviewerNode(state: AgentStateType): Promise<Partial<AgentStateTy
 }
 
 async function qaNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "QA" },
@@ -156,6 +233,7 @@ async function qaNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
 }
 
 async function commitNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  await checkSignal(state.runId);
   await prisma.run.update({
     where: { id: state.runId },
     data: { status: "COMMITTING" },

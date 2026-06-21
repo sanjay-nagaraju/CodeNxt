@@ -18,6 +18,8 @@ enum RunStatus {
   COMMITTING
   COMPLETED
   FAILED
+  PAUSED
+  CANCELLED
 }
 
 enum SymbolType {
@@ -58,6 +60,7 @@ model Run {
   id         String    @id @default(cuid())
   projectId  String
   task       String
+  image      String?   @db.Text
   status     RunStatus @default(PENDING)
   branchName String?
   plan       Json?

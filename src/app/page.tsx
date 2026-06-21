@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Folder, Sparkles, Code2, GitCommit, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import { Play, Pause, Square, Folder, Sparkles, Code2, GitCommit, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 
 const AGENT_STAGES = [
   { name: "Planner", icon: <ClipboardIcon className="w-4 h-4" />, description: "Analyzing requirements & creating plan" },
@@ -37,6 +37,7 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Array<{ id: string; name: string; path: string }>>([]);
   const [projectId, setProjectId] = useState<string>("");
   const [isBrowsing, setIsBrowsing] = useState(false);
+  const [runState, setRunState] = useState<"running" | "paused" | "idle">("idle");
 
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +96,7 @@ export default function HomePage() {
     setIsSubmitting(true);
     setEvents([]);
     setCurrentStatus("PENDING");
+    setRunState("running");
 
     try {
       const res = await fetch("/api/runs", {
@@ -126,6 +128,7 @@ export default function HomePage() {
             setTimeout(() => {
               evtSource.close();
               setIsSubmitting(false);
+              setRunState("idle");
             }, 1000);
           }
         } catch {
@@ -136,10 +139,31 @@ export default function HomePage() {
       evtSource.onerror = () => {
         evtSource.close();
         setIsSubmitting(false);
+        setRunState("idle");
       };
     } catch (error) {
       console.error("Failed to submit task:", error);
       setIsSubmitting(false);
+      setRunState("idle");
+    }
+  }
+
+  async function handleRunControl(action: "pause" | "resume" | "cancel") {
+    if (!activeRunId) return;
+    try {
+      await fetch(`/api/runs/${activeRunId}/control`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (action === "pause") setRunState("paused");
+      if (action === "resume") setRunState("running");
+      if (action === "cancel") {
+        setRunState("idle");
+        setTimeout(() => setIsSubmitting(false), 1500);
+      }
+    } catch (err) {
+      console.error("Failed to control run:", err);
     }
   }
 
@@ -311,8 +335,10 @@ export default function HomePage() {
                         layout
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm font-medium transition-all duration-300 ${stateClass}`}
                       >
-                        {isActive ? (
+                        {isActive && runState === "running" ? (
                           <Loader2 className="w-4 h-4 animate-spin text-zinc-900 dark:text-zinc-300" />
+                        ) : isActive && runState === "paused" ? (
+                          <Pause className="w-4 h-4 text-amber-500" />
                         ) : isComplete ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         ) : (
@@ -328,6 +354,37 @@ export default function HomePage() {
                 })}
               </div>
             </div>
+
+            {/* Task Controls */}
+            {(runState === "running" || runState === "paused") && (
+              <div className="flex items-center gap-2 shrink-0">
+                {runState === "running" && (
+                  <button
+                    onClick={() => handleRunControl("pause")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                  >
+                    <Pause className="w-3.5 h-3.5" />
+                    Pause
+                  </button>
+                )}
+                {runState === "paused" && (
+                  <button
+                    onClick={() => handleRunControl("resume")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    Resume
+                  </button>
+                )}
+                <button
+                  onClick={() => handleRunControl("cancel")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors"
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  Stop
+                </button>
+              </div>
+            )}
 
             {/* Terminal-style Log Stream */}
             <div className="flex-1 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
