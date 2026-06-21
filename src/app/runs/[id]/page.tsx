@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, GitBranch, FolderGit2, CheckCircle2, Activity, TerminalSquare, XCircle, Code2, GitCommit, FileDiff } from "lucide-react";
 
 interface RunDetail {
   id: string;
@@ -34,13 +36,13 @@ interface LiveEvent {
 }
 
 const PIPELINE_STAGES = [
-  { key: "PLANNING", name: "Planner", icon: "📋" },
-  { key: "ANALYZING", name: "Analyzer", icon: "🔍" },
-  { key: "CODING", name: "Coder", icon: "💻" },
-  { key: "BUILDING", name: "Build", icon: "🔨" },
-  { key: "REVIEWING", name: "Reviewer", icon: "👀" },
-  { key: "QA", name: "QA", icon: "✅" },
-  { key: "COMMITTING", name: "Commit", icon: "📝" },
+  { key: "PLANNING", name: "Planner", icon: Activity },
+  { key: "ANALYZING", name: "Analyzer", icon: Activity },
+  { key: "CODING", name: "Coder", icon: Code2 },
+  { key: "BUILDING", name: "Build", icon: Activity },
+  { key: "REVIEWING", name: "Reviewer", icon: Activity },
+  { key: "QA", name: "QA", icon: CheckCircle2 },
+  { key: "COMMITTING", name: "Commit", icon: GitCommit },
 ];
 
 function getStageIndex(status: string): number {
@@ -53,10 +55,15 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"logs" | "plan" | "review" | "qa">("logs");
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchRun();
   }, [id]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [liveEvents, activeTab, run]);
 
   useEffect(() => {
     if (!run || ["COMPLETED", "FAILED"].includes(run.status)) return;
@@ -103,7 +110,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <Activity className="w-6 h-6 text-zinc-600 animate-spin" />
       </div>
     );
   }
@@ -111,7 +118,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   if (!run) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Run not found</p>
+        <p className="text-zinc-500">Run not found</p>
       </div>
     );
   }
@@ -124,82 +131,111 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   ];
 
   const currentStageIndex = getStageIndex(run.status);
+  const isRunComplete = ["COMPLETED", "FAILED"].includes(run.status);
 
   function getAgentColor(agent: string): string {
     const colors: Record<string, string> = {
-      System: "text-muted-foreground",
+      System: "text-zinc-500",
       Planner: "text-blue-400",
-      Analyzer: "text-cyan-400",
-      Coder: "text-green-400",
-      Reviewer: "text-yellow-400",
+      Analyzer: "text-indigo-400",
+      Coder: "text-emerald-400",
+      Reviewer: "text-amber-400",
       QA: "text-purple-400",
-      Git: "text-orange-400",
-      "Git-Commit": "text-orange-400",
+      Git: "text-rose-400",
+      "Git-Commit": "text-rose-400",
     };
-    return colors[agent] || "text-muted-foreground";
+    return colors[agent] || "text-zinc-500";
   }
 
+  const tabs = ["logs", "plan", "review", "qa"] as const;
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-black">
       {/* Header */}
-      <header className="p-6 border-b border-border">
-        <div className="flex items-center gap-3 mb-1">
-          <a
-            href="/runs"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Runs
-          </a>
-          <span className="text-border">/</span>
-          <span className="text-sm font-mono text-muted-foreground">
-            {run.id.slice(0, 8)}
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold mt-2">{run.task}</h1>
-        <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-          <span className="text-foreground font-medium">{run.status}</span>
-          {run.branchName && (
-            <span className="font-mono bg-secondary px-2 py-0.5 rounded text-xs">
-              {run.branchName}
+      <header className="px-8 py-6 border-b border-zinc-900 shrink-0">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <a
+                href="/runs"
+                className="text-zinc-500 hover:text-zinc-100 transition-colors flex items-center gap-1.5 text-sm"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Runs
+              </a>
+              <span className="text-zinc-800">/</span>
+              <span className="text-sm font-mono text-zinc-500">
+                {run.id.slice(0, 8)}
+              </span>
+            </div>
+            
+            {isRunComplete && (
+              <a
+                href={`/runs/${id}/diff`}
+                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-md text-sm font-medium transition-colors border border-zinc-800"
+              >
+                <FileDiff className="w-4 h-4" />
+                View Diffs
+              </a>
+            )}
+          </div>
+          
+          <h1 className="text-xl md:text-2xl font-semibold text-zinc-100 tracking-tight leading-tight max-w-4xl">
+            {run.task}
+          </h1>
+          
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-[13px] text-zinc-500">
+            <span className={`inline-flex items-center gap-1.5 font-medium px-2 py-0.5 rounded-md ${
+              run.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-400" :
+              run.status === "FAILED" ? "bg-rose-500/10 text-rose-400" :
+              "bg-zinc-900 text-zinc-300"
+            }`}>
+              {run.status === "COMPLETED" ? <CheckCircle2 className="w-3.5 h-3.5" /> : 
+               run.status === "FAILED" ? <XCircle className="w-3.5 h-3.5" /> : 
+               <Activity className="w-3.5 h-3.5" />}
+              {run.status}
             </span>
-          )}
-          <span>{run.project.name}</span>
+            <span className="flex items-center gap-1.5">
+              <FolderGit2 className="w-4 h-4" />
+              {run.project.name}
+            </span>
+            {run.branchName && (
+              <span className="flex items-center gap-1.5">
+                <GitBranch className="w-4 h-4" />
+                <span className="font-mono bg-zinc-900 px-1.5 rounded">{run.branchName}</span>
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Pipeline Visualization */}
-      <div className="px-6 py-4 border-b border-border">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="px-8 py-4 border-b border-zinc-900 bg-[#050505] shrink-0">
+        <div className="max-w-6xl mx-auto flex items-center gap-1 overflow-x-auto scrollbar-hide">
           {PIPELINE_STAGES.map((stage, i) => {
             const isActive = stage.key === run.status;
             const isComplete = i < currentStageIndex || run.status === "COMPLETED";
             const isFailed = run.status === "FAILED" && i === currentStageIndex;
+            const Icon = stage.icon;
 
             return (
               <div key={stage.key} className="flex items-center">
                 <div
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all ${
                     isFailed
-                      ? "bg-destructive/10 text-destructive border border-destructive/20"
+                      ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                       : isActive
-                      ? "glass pulse-glow text-foreground"
+                      ? "bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm"
                       : isComplete
-                      ? "bg-success/10 text-success"
-                      : "bg-secondary/30 text-muted-foreground"
+                      ? "bg-transparent text-emerald-500"
+                      : "bg-transparent text-zinc-600"
                   }`}
                 >
-                  <span>{stage.icon}</span>
+                  <Icon className="w-3.5 h-3.5" />
                   <span className="whitespace-nowrap">{stage.name}</span>
-                  {isComplete && !isFailed && <span>✓</span>}
-                  {isActive && !isFailed && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  )}
-                  {isFailed && <span>✗</span>}
                 </div>
                 {i < PIPELINE_STAGES.length - 1 && (
-                  <svg className="w-3 h-3 mx-0.5 text-border" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <div className="w-4 h-px bg-zinc-800 mx-2" />
                 )}
               </div>
             );
@@ -208,107 +244,118 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4 border-b border-border">
-        <div className="flex gap-1">
-          {(["logs", "plan", "review", "qa"] as const).map((tab) => (
+      <div className="px-8 border-b border-zinc-900 shrink-0">
+        <div className="max-w-6xl mx-auto flex gap-6">
+          {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === tab
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className="relative py-4 text-[13px] font-medium capitalize transition-colors"
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className={activeTab === tab ? "text-zinc-100" : "text-zinc-500 hover:text-zinc-300"}>
+                {tab}
+              </span>
+              {activeTab === tab && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-100"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
             </button>
           ))}
         </div>
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {activeTab === "logs" && (
-          <div className="glass rounded-xl p-4 font-mono text-sm space-y-1 max-h-full overflow-y-auto">
-            {allEvents.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No events yet...
-              </p>
-            ) : (
-              allEvents.map((event, i) => (
-                <div
-                  key={event.id || i}
-                  className="flex gap-3 py-1 hover:bg-white/[0.02] rounded px-2 -mx-2"
-                >
-                  <span className="text-muted-foreground/50 text-xs shrink-0 w-20 pt-0.5">
-                    {new Date(event.createdAt).toLocaleTimeString()}
-                  </span>
-                  <span
-                    className={`font-semibold shrink-0 w-28 ${getAgentColor(
-                      event.agent
-                    )}`}
-                  >
-                    [{event.agent}]
-                  </span>
-                  <span
-                    className={
-                      event.level === "ERROR"
-                        ? "text-destructive"
-                        : event.level === "WARN"
-                        ? "text-warning"
-                        : "text-foreground/80"
-                    }
-                  >
-                    {event.message}
-                  </span>
+      <div className="flex-1 overflow-y-auto p-8 bg-[#050505]">
+        <div className="max-w-6xl mx-auto h-full flex flex-col">
+          {activeTab === "logs" && (
+            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800/80 rounded-xl flex flex-col shadow-lg overflow-hidden">
+              <div className="h-10 bg-zinc-900/50 border-b border-zinc-800 flex items-center px-4 shrink-0">
+                <TerminalSquare className="w-4 h-4 text-zinc-500 mr-2" />
+                <span className="text-xs font-mono text-zinc-500 tracking-wider">Console Output</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px] leading-relaxed">
+                {allEvents.length === 0 ? (
+                  <p className="text-zinc-600 text-center py-8">No events yet...</p>
+                ) : (
+                  <AnimatePresence initial={false}>
+                    {allEvents.map((event, i) => (
+                      <motion.div
+                        key={event.id || i}
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex gap-4 py-0.5 hover:bg-zinc-900/30 rounded px-1 -mx-1"
+                      >
+                        <span className="text-zinc-600 shrink-0 w-20 select-none">
+                          {new Date(event.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
+                        </span>
+                        <span className={`font-medium shrink-0 w-28 select-none ${getAgentColor(event.agent)}`}>
+                          [{event.agent.toLowerCase()}]
+                        </span>
+                        <span className={`break-words ${
+                          event.level === "ERROR" ? "text-rose-400" : 
+                          event.level === "WARN" ? "text-amber-400" : 
+                          "text-zinc-300"
+                        }`}>
+                          {event.message}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
+                <div ref={logEndRef} className="h-4" />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "plan" && (
+            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800/80 rounded-xl p-6 overflow-y-auto shadow-sm">
+              {run.plan ? (
+                <pre className="text-[13px] text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed">
+                  {JSON.stringify(run.plan, null, 2)}
+                </pre>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                  <Activity className="w-8 h-8 mb-3 opacity-20" />
+                  <p>No plan generated yet</p>
                 </div>
-              ))
-            )}
-            <div ref={(el) => el?.scrollIntoView({ behavior: "smooth" })} />
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        {activeTab === "plan" && (
-          <div className="glass rounded-xl p-6">
-            {run.plan ? (
-              <pre className="text-sm text-foreground/80 whitespace-pre-wrap overflow-x-auto">
-                {JSON.stringify(run.plan, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No plan generated yet
-              </p>
-            )}
-          </div>
-        )}
+          {activeTab === "review" && (
+            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800/80 rounded-xl p-6 overflow-y-auto shadow-sm">
+              {run.review ? (
+                <pre className="text-[13px] text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed">
+                  {JSON.stringify(run.review, null, 2)}
+                </pre>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                  <Activity className="w-8 h-8 mb-3 opacity-20" />
+                  <p>No review results yet</p>
+                </div>
+              )}
+            </div>
+          )}
 
-        {activeTab === "review" && (
-          <div className="glass rounded-xl p-6">
-            {run.review ? (
-              <pre className="text-sm text-foreground/80 whitespace-pre-wrap overflow-x-auto">
-                {JSON.stringify(run.review, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No review results yet
-              </p>
-            )}
-          </div>
-        )}
-
-        {activeTab === "qa" && (
-          <div className="glass rounded-xl p-6">
-            {run.qa ? (
-              <pre className="text-sm text-foreground/80 whitespace-pre-wrap overflow-x-auto">
-                {JSON.stringify(run.qa, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No QA results yet
-              </p>
-            )}
-          </div>
-        )}
+          {activeTab === "qa" && (
+            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800/80 rounded-xl p-6 overflow-y-auto shadow-sm">
+              {run.qa ? (
+                <pre className="text-[13px] text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed">
+                  {JSON.stringify(run.qa, null, 2)}
+                </pre>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                  <CheckCircle2 className="w-8 h-8 mb-3 opacity-20" />
+                  <p>No QA results yet</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

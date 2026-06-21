@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Play, Folder, Sparkles, Code2, GitCommit, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 
 const AGENT_STAGES = [
-  { name: "Planner", icon: "📋", description: "Analyzing requirements & creating plan" },
-  { name: "Analyzer", icon: "🔍", description: "Locating impacted files & symbols" },
-  { name: "Coder", icon: "💻", description: "Implementing code changes" },
-  { name: "Reviewer", icon: "👀", description: "Reviewing code quality & security" },
-  { name: "QA", icon: "✅", description: "Validating acceptance criteria" },
+  { name: "Planner", icon: <ClipboardIcon className="w-4 h-4" />, description: "Analyzing requirements & creating plan" },
+  { name: "Analyzer", icon: <SearchIcon className="w-4 h-4" />, description: "Locating impacted files & symbols" },
+  { name: "Coder", icon: <Code2 className="w-4 h-4" />, description: "Implementing code changes" },
+  { name: "Reviewer", icon: <EyeIcon className="w-4 h-4" />, description: "Reviewing code quality & security" },
+  { name: "QA", icon: <CheckCircle2 className="w-4 h-4" />, description: "Validating acceptance criteria" },
 ];
+
+// Helper Icons
+function ClipboardIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+}
+function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+}
+function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+}
 
 export default function HomePage() {
   const [task, setTask] = useState("");
@@ -25,6 +38,8 @@ export default function HomePage() {
   const [projectId, setProjectId] = useState<string>("");
   const [isBrowsing, setIsBrowsing] = useState(false);
 
+  const logEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetch("/api/projects")
       .then((res) => res.json())
@@ -37,6 +52,10 @@ export default function HomePage() {
       .catch((err) => console.error("Failed to load projects:", err));
   }, []);
 
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [events]);
+
   async function handleBrowse() {
     setIsBrowsing(true);
     try {
@@ -47,7 +66,6 @@ export default function HomePage() {
       }
       const { path } = await res.json();
       
-      // Upsert in DB
       const name = path.split('/').filter(Boolean).pop() || "Local Project";
       const createRes = await fetch("/api/projects", {
         method: "POST",
@@ -79,7 +97,6 @@ export default function HomePage() {
     setCurrentStatus("PENDING");
 
     try {
-
       const res = await fetch("/api/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,7 +106,6 @@ export default function HomePage() {
       const run = await res.json();
       setActiveRunId(run.id);
 
-      // Connect to SSE for real-time updates
       const evtSource = new EventSource(`/api/runs/${run.id}/events`);
 
       evtSource.onmessage = (event) => {
@@ -103,7 +119,6 @@ export default function HomePage() {
           setEvents((prev) => [...prev, data]);
           setCurrentStatus(data.agent || "");
 
-          // Check for completion
           if (
             data.message?.includes("completed successfully") ||
             data.message?.includes("Workflow failed")
@@ -114,7 +129,7 @@ export default function HomePage() {
             }, 1000);
           }
         } catch {
-          // ignore parse errors
+          // ignore
         }
       };
 
@@ -130,51 +145,65 @@ export default function HomePage() {
 
   function getAgentColor(agent: string): string {
     const colors: Record<string, string> = {
-      System: "text-muted-foreground",
+      System: "text-zinc-500",
       Planner: "text-blue-400",
-      Analyzer: "text-cyan-400",
-      Coder: "text-green-400",
-      Reviewer: "text-yellow-400",
+      Analyzer: "text-indigo-400",
+      Coder: "text-emerald-400",
+      Reviewer: "text-amber-400",
       QA: "text-purple-400",
-      Git: "text-orange-400",
-      "Git-Commit": "text-orange-400",
+      Git: "text-rose-400",
+      "Git-Commit": "text-rose-400",
     };
-    return colors[agent] || "text-muted-foreground";
+    return colors[agent] || "text-zinc-500";
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <header className="p-8 pb-0">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="gradient-text">Autonomous Coding</span>
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Describe your task and let the agents handle the rest.
-          </p>
-        </div>
-      </header>
+    <div className="h-full flex flex-col relative overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-zinc-900/50 to-transparent pointer-events-none" />
 
-      {/* Task Input */}
-      <section className="p-8">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <div className="glass rounded-xl p-4 focus-within:ring-2 focus-within:ring-primary/50 transition-all flex flex-col gap-3">
-            <label htmlFor="project-select" className="text-sm font-medium text-muted-foreground">Target Project</label>
-            <div className="flex gap-2">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 w-full max-w-4xl mx-auto mt-12 mb-8">
+        
+        {/* Header / Empty State */}
+        {!activeRunId && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-10 w-full"
+          >
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-100 mb-3">
+              What do you want to build?
+            </h1>
+            <p className="text-zinc-400 text-sm md:text-base">
+              Select a project and describe the changes. CodeNXT will autonomously implement them.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Input Area (Claude-style) */}
+        <motion.div 
+          layout
+          className={`w-full transition-all duration-500 ${activeRunId ? "mb-6" : "mb-0"}`}
+        >
+          <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
+            
+            {/* Project Selector Bar */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50 mb-2">
+              <Folder className="w-4 h-4 text-zinc-500" />
               <select
                 id="project-select"
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="flex-1 bg-transparent border border-border rounded-lg px-4 py-2 text-foreground focus:outline-none focus:border-primary text-sm"
+                className="bg-transparent text-sm font-medium text-zinc-300 focus:outline-none flex-1 appearance-none cursor-pointer"
                 disabled={isSubmitting || projects.length === 0}
               >
                 {projects.length === 0 ? (
-                  <option value="">No projects available. Click Browse.</option>
+                  <option value="">No projects available...</option>
                 ) : (
                   projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {p.path}
+                    <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-300">
+                      {p.name}
                     </option>
                   ))
                 )}
@@ -183,219 +212,164 @@ export default function HomePage() {
                 type="button"
                 onClick={handleBrowse}
                 disabled={isSubmitting || isBrowsing}
-                className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors flex items-center gap-1.5"
               >
                 {isBrowsing ? (
-                  <span className="animate-pulse">Opening...</span>
+                  <><Loader2 className="w-3 h-3 animate-spin" /> Browsing</>
                 ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    Browse...
-                  </>
+                  "Browse local..."
                 )}
               </button>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit} className="relative">
-            <div className="glass rounded-xl p-1 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+            {/* Prompt Form */}
+            <form onSubmit={handleSubmit} className="relative flex flex-col group">
               <textarea
-                id="task-input"
                 value={task}
                 onChange={(e) => setTask(e.target.value)}
-                placeholder="Describe your task... e.g. Add forgot password flow to login page"
-                rows={3}
-                className="w-full bg-transparent px-5 py-4 text-foreground placeholder-muted-foreground/50 resize-none focus:outline-none text-base"
+                placeholder="Message CodeNXT..."
+                rows={activeRunId ? 2 : 4}
+                className="w-full bg-transparent px-3 py-2 text-zinc-100 placeholder-zinc-500 resize-none focus:outline-none text-base transition-all duration-300"
                 disabled={isSubmitting}
+                autoFocus
               />
-              <div className="flex items-center justify-between px-4 pb-3">
-                <div className="flex items-center gap-2">
+              
+              <div className="flex items-center justify-between px-3 pb-2 pt-2">
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
                   {isSubmitting && (
-                    <div className="flex items-center gap-2 text-sm text-primary">
-                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                      Processing...
-                    </div>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-zinc-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Running autonomous workflow...
+                    </motion.div>
                   )}
                 </div>
+                
                 <button
                   type="submit"
-                  id="submit-task"
-                  disabled={!task.trim() || isSubmitting}
-                  className="px-6 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-primary/30 disabled:cursor-not-allowed text-primary-foreground font-medium rounded-lg transition-all text-sm flex items-center gap-2"
+                  disabled={!task.trim() || isSubmitting || !projectId}
+                  className="bg-zinc-100 hover:bg-white text-black disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg font-medium text-sm transition-all flex items-center gap-1.5"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      Running
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Run
-                    </>
-                  )}
+                  {isSubmitting ? "Running" : "Run"}
+                  <Play className="w-3.5 h-3.5 fill-current" />
                 </button>
               </div>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      {/* Agent Pipeline */}
-      {activeRunId && (
-        <section className="px-8 pb-4 fade-in">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {AGENT_STAGES.map((stage, i) => {
-                const isActive = events.some(
-                  (e) => e.agent === stage.name && !events.some(
-                    (e2) => e2.agent === stage.name && e2.message.includes("completed")
-                  )
-                );
-                const isComplete = events.some(
-                  (e) => e.agent === stage.name && e.message.includes("completed")
-                );
-
-                return (
-                  <div key={stage.name} className="flex items-center">
-                    <div
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
-                        isActive
-                          ? "glass pulse-glow text-foreground"
-                          : isComplete
-                          ? "bg-success/10 text-success border border-success/20"
-                          : "bg-secondary/50 text-muted-foreground"
-                      }`}
-                    >
-                      <span>{stage.icon}</span>
-                      <span className="font-medium whitespace-nowrap">{stage.name}</span>
-                      {isComplete && <span className="text-success">✓</span>}
-                      {isActive && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      )}
-                    </div>
-                    {i < AGENT_STAGES.length - 1 && (
-                      <svg
-                        className="w-4 h-4 mx-1 text-border shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            </form>
           </div>
-        </section>
-      )}
 
-      {/* Live Log Stream */}
-      {events.length > 0 && (
-        <section className="flex-1 px-8 pb-8 min-h-0 fade-in">
-          <div className="max-w-4xl mx-auto h-full flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Live Execution Log
-              </h2>
-              <span className="text-xs text-muted-foreground">
-                {events.length} events
-              </span>
-            </div>
-            <div
-              className="flex-1 glass rounded-xl p-4 overflow-y-auto font-mono text-sm space-y-1"
-              id="log-stream"
+          {/* Quick Actions (Only show when empty) */}
+          {!activeRunId && (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 0.2 }}
+              className="flex flex-wrap gap-2 justify-center mt-6"
             >
-              {events.map((event, i) => (
-                <div
-                  key={i}
-                  className="flex gap-3 py-1 slide-up hover:bg-white/[0.02] rounded px-2 -mx-2"
-                >
-                  <span className="text-muted-foreground/50 text-xs shrink-0 w-16 pt-0.5">
-                    {new Date(event.createdAt).toLocaleTimeString()}
-                  </span>
-                  <span
-                    className={`font-semibold shrink-0 w-24 ${getAgentColor(
-                      event.agent
-                    )}`}
-                  >
-                    [{event.agent}]
-                  </span>
-                  <span
-                    className={`${
-                      event.level === "ERROR"
-                        ? "text-destructive"
-                        : event.level === "WARN"
-                        ? "text-warning"
-                        : "text-foreground/80"
-                    }`}
-                  >
-                    {event.message}
-                  </span>
-                </div>
-              ))}
-              <div ref={(el) => el?.scrollIntoView({ behavior: "smooth" })} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Empty state */}
-      {!activeRunId && (
-        <section className="flex-1 flex items-center justify-center px-8 pb-16">
-          <div className="text-center max-w-md">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Ready to build</h3>
-            <p className="text-muted-foreground text-sm">
-              Enter a task above and CodeNXT will autonomously plan, implement, review, and deploy your changes.
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center mt-6">
-              {["Add dark mode toggle", "Create user profile page", "Add forgot password flow"].map((example) => (
+              {["Create a dashboard page", "Add authentication flow", "Refactor the database schema"].map((example) => (
                 <button
                   key={example}
                   onClick={() => setTask(example)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                  className="text-xs px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/30 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
                 >
+                  <Sparkles className="w-3 h-3" />
                   {example}
                 </button>
               ))}
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Active Execution UI */}
+        {activeRunId && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full flex-1 flex flex-col min-h-0 space-y-4"
+          >
+            {/* Elegant Pipeline Stepper */}
+            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-4 shrink-0 backdrop-blur-md">
+              <div className="flex items-center justify-between overflow-x-auto gap-2 scrollbar-hide">
+                {AGENT_STAGES.map((stage, i) => {
+                  const isActive = events.some(
+                    (e) => e.agent === stage.name && !events.some(
+                      (e2) => e2.agent === stage.name && e2.message.includes("completed")
+                    )
+                  );
+                  const isComplete = events.some(
+                    (e) => e.agent === stage.name && e.message.includes("completed")
+                  );
+                  
+                  // Compute dynamic color state
+                  const stateClass = isActive 
+                    ? "text-zinc-100 bg-zinc-800/80 border-zinc-700 shadow-sm" 
+                    : isComplete 
+                    ? "text-zinc-400 bg-zinc-900/50 border-zinc-800/50" 
+                    : "text-zinc-600 bg-transparent border-transparent";
+
+                  return (
+                    <div key={stage.name} className="flex items-center">
+                      <motion.div
+                        layout
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm font-medium transition-all duration-300 ${stateClass}`}
+                      >
+                        {isActive ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-zinc-300" />
+                        ) : isComplete ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <span className="opacity-50">{stage.icon}</span>
+                        )}
+                        <span className="whitespace-nowrap">{stage.name}</span>
+                      </motion.div>
+                      {i < AGENT_STAGES.length - 1 && (
+                        <ChevronRight className="w-4 h-4 mx-2 text-zinc-700 shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+
+            {/* Terminal-style Log Stream */}
+            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
+              <div className="h-10 bg-zinc-900/50 border-b border-zinc-800 flex items-center px-4">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                </div>
+                <span className="ml-4 text-xs font-mono text-zinc-500 uppercase tracking-wider">Console Output</span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px] leading-relaxed">
+                <AnimatePresence initial={false}>
+                  {events.map((event, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex gap-4 py-0.5 hover:bg-zinc-900/30 rounded px-1 -mx-1"
+                    >
+                      <span className="text-zinc-600 shrink-0 w-20 select-none">
+                        {new Date(event.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
+                      </span>
+                      <span className={`font-medium shrink-0 w-24 select-none ${getAgentColor(event.agent)}`}>
+                        {event.agent.toLowerCase()}
+                      </span>
+                      <span className={`break-words ${
+                        event.level === "ERROR" ? "text-rose-400" : 
+                        event.level === "WARN" ? "text-amber-400" : 
+                        "text-zinc-300"
+                      }`}>
+                        {event.message}
+                      </span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                <div ref={logEndRef} className="h-4" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
