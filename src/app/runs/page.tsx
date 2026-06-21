@@ -65,14 +65,14 @@ export default function RunsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Execution History</h1>
-          <p className="text-zinc-500 text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">Execution History</h1>
+          <p className="text-zinc-500 dark:text-zinc-500 text-sm mt-1">
             Track all autonomous AI coding tasks across your projects.
           </p>
         </div>
         <a
           href="/"
-          className="px-4 py-2 bg-zinc-100 hover:bg-white text-black rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-zinc-900 dark:bg-zinc-100 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           New Task
@@ -82,16 +82,16 @@ export default function RunsPage() {
       {/* Runs List */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <CircleDashed className="w-6 h-6 text-zinc-600 animate-spin" />
+          <CircleDashed className="w-6 h-6 text-zinc-400 dark:text-zinc-600 animate-spin" />
         </div>
       ) : runs.length === 0 ? (
-        <div className="border border-zinc-800/50 bg-[#0A0A0A] rounded-xl p-12 text-center">
-          <Activity className="w-8 h-8 text-zinc-700 mx-auto mb-4" />
-          <h3 className="text-zinc-300 font-medium mb-1">No runs found</h3>
-          <p className="text-zinc-500 text-sm">Start your first autonomous task from the home page.</p>
+        <div className="border border-zinc-200 dark:border-zinc-800/50 bg-zinc-50 dark:bg-[#0A0A0A] rounded-xl p-12 text-center">
+          <Activity className="w-8 h-8 text-zinc-400 dark:text-zinc-700 mx-auto mb-4" />
+          <h3 className="text-zinc-900 dark:text-zinc-300 font-medium mb-1">No runs found</h3>
+          <p className="text-zinc-500 dark:text-zinc-500 text-sm">Start your first autonomous task from the home page.</p>
         </div>
       ) : (
-        <div className="border border-zinc-800/80 bg-[#0A0A0A] rounded-xl overflow-hidden shadow-sm">
+        <div className="border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-[#0A0A0A] rounded-xl overflow-hidden shadow-sm">
           {runs.map((run, index) => {
             const config = STATUS_CONFIG[run.status] || STATUS_CONFIG.PENDING;
             const Icon = config.icon;
@@ -103,7 +103,7 @@ export default function RunsPage() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors last:border-0"
+                className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors last:border-0"
               >
                 <div className="flex items-start gap-4 min-w-0 flex-1">
                   <div className={`mt-0.5 p-1.5 rounded-md ${config.bg} shrink-0`}>
@@ -111,7 +111,7 @@ export default function RunsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-sm font-medium text-zinc-200 truncate group-hover:text-zinc-100 transition-colors">
+                      <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-200 truncate group-hover:text-black dark:group-hover:text-zinc-100 transition-colors">
                         {run.task}
                       </h3>
                     </div>
@@ -122,18 +122,18 @@ export default function RunsPage() {
                       </span>
                       {run.branchName && (
                         <>
-                          <span className="text-zinc-700">•</span>
-                          <span className="font-mono text-zinc-400 bg-zinc-900 px-1.5 rounded">
+                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                          <span className="font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-1.5 rounded">
                             {run.branchName}
                           </span>
                         </>
                       )}
-                      <span className="text-zinc-700">•</span>
+                      <span className="text-zinc-300 dark:text-zinc-700">•</span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {formatDuration(run.createdAt, run.completedAt)}
                       </span>
-                      <span className="text-zinc-700">•</span>
+                      <span className="text-zinc-300 dark:text-zinc-700">•</span>
                       <span className="flex items-center gap-1.5">
                         <TerminalSquare className="w-3.5 h-3.5" />
                         {run._count.events} events
@@ -146,7 +146,7 @@ export default function RunsPage() {
                   <div className="text-[13px] text-zinc-500 text-right">
                     {new Date(run.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition-colors hidden sm:block" />
+                  <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition-colors hidden sm:block" />
                 </div>
               </motion.a>
             );
