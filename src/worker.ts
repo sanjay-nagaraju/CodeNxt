@@ -2,6 +2,7 @@ import { Worker, Job } from "bullmq";
 import IORedis from "ioredis";
 import { PrismaClient } from "@prisma/client";
 import { createWorkflowGraph } from "./lib/workflow/graph";
+import { emitEvent } from "./lib/workflow/event-emitter";
 import type { TaskJobData } from "./lib/queue/task-queue";
 
 // ─── Direct imports for worker (can't use path aliases in standalone) ──
@@ -42,6 +43,17 @@ async function processTask(job: Job<TaskJobData>): Promise<void> {
     const err = error as { message?: string };
     console.error(`[Worker] Task failed: ${err.message}`);
 
+    try {
+      await emitEvent({
+        runId,
+        agent: "System",
+        message: `Workflow crashed: ${err.message || "Unknown error"}`,
+        level: "ERROR",
+      });
+    } catch (e) {
+      console.error("[Worker] Failed to emit error event:", e);
+    }
+
     await prisma.run.update({
       where: { id: runId },
       data: {
@@ -56,7 +68,7 @@ async function processTask(job: Job<TaskJobData>): Promise<void> {
 // ─── Start Worker ──────────────────────────────────────────────────
 
 const worker = new Worker<TaskJobData>("codenxt-tasks", processTask, {
-  connection,
+  connection: connection as any,
   concurrency: 1, // Process one task at a time
   removeOnComplete: { count: 100 },
   removeOnFail: { count: 50 },

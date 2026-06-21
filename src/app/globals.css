@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-background: #000000;
@@ -155,4 +156,19 @@
 
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
+}
+
+/* Telegram-style View Transition Wave */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
 }

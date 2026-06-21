@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/db";
 import { redis, CHANNELS } from "@/lib/redis";
-import { EventLevel } from "@prisma/client";
 
 export interface AgentEvent {
   runId: string;
   agent: string;
   message: string;
-  level?: EventLevel;
+  level?: "INFO" | "WARN" | "ERROR" | "DEBUG";
   metadata?: Record<string, unknown>;
 }
 
@@ -20,7 +19,7 @@ export async function emitEvent(event: AgentEvent): Promise<void> {
       agent,
       message,
       level,
-      metadata: metadata ?? undefined,
+      metadata: metadata ? (metadata as any) : undefined,
     },
   });
 

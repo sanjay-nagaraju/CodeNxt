@@ -82,7 +82,7 @@ export default function HomePage() {
       setProjectId(newProject.id);
     } catch (err) {
       console.error(err);
-      alert("Failed to open folder picker. Make sure you are running locally.");
+      console.log("Failed to open folder picker. Make sure you are running locally.");
     } finally {
       setIsBrowsing(false);
     }
@@ -160,7 +160,7 @@ export default function HomePage() {
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
       {/* Background ambient glow */}
-      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-zinc-900/50 to-transparent pointer-events-none" />
+      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-zinc-100 dark:from-zinc-900/50 to-transparent pointer-events-none" />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 w-full max-w-4xl mx-auto mt-12 mb-8">
@@ -172,10 +172,10 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-10 w-full"
           >
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-100 mb-3">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mb-3">
               What do you want to build?
             </h1>
-            <p className="text-zinc-400 text-sm md:text-base">
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm md:text-base">
               Select a project and describe the changes. CodeNXT will autonomously implement them.
             </p>
           </motion.div>
@@ -186,23 +186,23 @@ export default function HomePage() {
           layout
           className={`w-full transition-all duration-500 ${activeRunId ? "mb-6" : "mb-0"}`}
         >
-          <div className="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
+          <div className="bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl p-2 shadow-2xl backdrop-blur-xl">
             
             {/* Project Selector Bar */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800/50 mb-2">
-              <Folder className="w-4 h-4 text-zinc-500" />
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800/50 mb-2">
+              <Folder className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
               <select
                 id="project-select"
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="bg-transparent text-sm font-medium text-zinc-300 focus:outline-none flex-1 appearance-none cursor-pointer"
+                className="bg-transparent text-sm font-medium text-zinc-900 dark:text-zinc-300 focus:outline-none flex-1 appearance-none cursor-pointer"
                 disabled={isSubmitting || projects.length === 0}
               >
                 {projects.length === 0 ? (
                   <option value="">No projects available...</option>
                 ) : (
                   projects.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-300">
+                    <option key={p.id} value={p.id} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-300">
                       {p.name}
                     </option>
                   ))
@@ -212,7 +212,7 @@ export default function HomePage() {
                 type="button"
                 onClick={handleBrowse}
                 disabled={isSubmitting || isBrowsing}
-                className="text-xs font-medium px-3 py-1.5 rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100 transition-colors flex items-center gap-1.5"
+                className="text-xs font-medium px-3 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex items-center gap-1.5"
               >
                 {isBrowsing ? (
                   <><Loader2 className="w-3 h-3 animate-spin" /> Browsing</>
@@ -229,15 +229,15 @@ export default function HomePage() {
                 onChange={(e) => setTask(e.target.value)}
                 placeholder="Message CodeNXT..."
                 rows={activeRunId ? 2 : 4}
-                className="w-full bg-transparent px-3 py-2 text-zinc-100 placeholder-zinc-500 resize-none focus:outline-none text-base transition-all duration-300"
+                className="w-full bg-transparent px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 resize-none focus:outline-none text-base transition-all duration-300"
                 disabled={isSubmitting}
                 autoFocus
               />
               
               <div className="flex items-center justify-between px-3 pb-2 pt-2">
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-500">
                   {isSubmitting && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-zinc-400">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Running autonomous workflow...
                     </motion.div>
@@ -247,7 +247,7 @@ export default function HomePage() {
                 <button
                   type="submit"
                   disabled={!task.trim() || isSubmitting || !projectId}
-                  className="bg-zinc-100 hover:bg-white text-black disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg font-medium text-sm transition-all flex items-center gap-1.5"
+                  className="bg-zinc-900 dark:bg-zinc-100 hover:bg-black dark:hover:bg-white text-white dark:text-black disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:text-zinc-400 dark:disabled:text-zinc-500 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg font-medium text-sm transition-all flex items-center gap-1.5"
                 >
                   {isSubmitting ? "Running" : "Run"}
                   <Play className="w-3.5 h-3.5 fill-current" />
@@ -268,7 +268,7 @@ export default function HomePage() {
                 <button
                   key={example}
                   onClick={() => setTask(example)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/30 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
+                  className="text-xs px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3 h-3" />
                   {example}
@@ -286,7 +286,7 @@ export default function HomePage() {
             className="w-full flex-1 flex flex-col min-h-0 space-y-4"
           >
             {/* Elegant Pipeline Stepper */}
-            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-4 shrink-0 backdrop-blur-md">
+            <div className="bg-white/50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shrink-0 backdrop-blur-md">
               <div className="flex items-center justify-between overflow-x-auto gap-2 scrollbar-hide">
                 {AGENT_STAGES.map((stage, i) => {
                   const isActive = events.some(
@@ -300,10 +300,10 @@ export default function HomePage() {
                   
                   // Compute dynamic color state
                   const stateClass = isActive 
-                    ? "text-zinc-100 bg-zinc-800/80 border-zinc-700 shadow-sm" 
+                    ? "text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border-zinc-300 dark:border-zinc-700 shadow-sm" 
                     : isComplete 
-                    ? "text-zinc-400 bg-zinc-900/50 border-zinc-800/50" 
-                    : "text-zinc-600 bg-transparent border-transparent";
+                    ? "text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800/50" 
+                    : "text-zinc-400 dark:text-zinc-600 bg-transparent border-transparent";
 
                   return (
                     <div key={stage.name} className="flex items-center">
@@ -312,7 +312,7 @@ export default function HomePage() {
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm font-medium transition-all duration-300 ${stateClass}`}
                       >
                         {isActive ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-zinc-300" />
+                          <Loader2 className="w-4 h-4 animate-spin text-zinc-900 dark:text-zinc-300" />
                         ) : isComplete ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         ) : (
@@ -321,7 +321,7 @@ export default function HomePage() {
                         <span className="whitespace-nowrap">{stage.name}</span>
                       </motion.div>
                       {i < AGENT_STAGES.length - 1 && (
-                        <ChevronRight className="w-4 h-4 mx-2 text-zinc-700 shrink-0" />
+                        <ChevronRight className="w-4 h-4 mx-2 text-zinc-300 dark:text-zinc-700 shrink-0" />
                       )}
                     </div>
                   );
@@ -330,14 +330,14 @@ export default function HomePage() {
             </div>
 
             {/* Terminal-style Log Stream */}
-            <div className="flex-1 bg-[#0A0A0A] border border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
-              <div className="h-10 bg-zinc-900/50 border-b border-zinc-800 flex items-center px-4">
+            <div className="flex-1 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden flex flex-col shadow-lg">
+              <div className="h-10 bg-white dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-4">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                 </div>
-                <span className="ml-4 text-xs font-mono text-zinc-500 uppercase tracking-wider">Console Output</span>
+                <span className="ml-4 text-xs font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Console Output</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px] leading-relaxed">
                 <AnimatePresence initial={false}>
@@ -346,18 +346,18 @@ export default function HomePage() {
                       key={i}
                       initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex gap-4 py-0.5 hover:bg-zinc-900/30 rounded px-1 -mx-1"
+                      className="flex gap-4 py-0.5 hover:bg-zinc-200/50 dark:hover:bg-zinc-900/30 rounded px-1 -mx-1"
                     >
-                      <span className="text-zinc-600 shrink-0 w-20 select-none">
+                      <span className="text-zinc-400 dark:text-zinc-600 shrink-0 w-20 select-none">
                         {new Date(event.createdAt).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
                       </span>
                       <span className={`font-medium shrink-0 w-24 select-none ${getAgentColor(event.agent)}`}>
                         {event.agent.toLowerCase()}
                       </span>
                       <span className={`break-words ${
-                        event.level === "ERROR" ? "text-rose-400" : 
-                        event.level === "WARN" ? "text-amber-400" : 
-                        "text-zinc-300"
+                        event.level === "ERROR" ? "text-rose-500 dark:text-rose-400" : 
+                        event.level === "WARN" ? "text-amber-500 dark:text-amber-400" : 
+                        "text-zinc-700 dark:text-zinc-300"
                       }`}>
                         {event.message}
                       </span>

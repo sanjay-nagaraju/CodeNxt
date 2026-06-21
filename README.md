@@ -11,12 +11,64 @@
 - **AST-Based Intelligence**: Deep codebase understanding, intelligent parsing, and dependency mapping via `ts-morph`.
 - **Bring Your Own LLM**: Integrated with OpenRouter to leverage top-tier models (like GPT-4, Claude 3, Qwen, etc.).
 
-## 🏗 Architecture
+## 🏗 System Architecture
 
-- **Frontend**: Next.js App Router, Tailwind CSS, Lucide React
-- **Backend APIs**: Next.js API Routes, BullMQ, Prisma ORM
-- **Database / Queue**: PostgreSQL & Redis (Containerized via Docker)
-- **AI / LLM Orchestration**: LangGraph, LangChain, OpenRouter
+CodeNXT uses a decoupled, event-driven architecture to ensure the heavy lifting of AI orchestration doesn't block the beautiful, real-time UI.
+
+```mermaid
+graph TD
+    %% Define Styles
+    classDef ui fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff
+    classDef api fill:#0891b2,stroke:#164e63,stroke-width:2px,color:#fff
+    classDef queue fill:#ea580c,stroke:#7c2d12,stroke-width:2px,color:#fff
+    classDef worker fill:#16a34a,stroke:#14532d,stroke-width:2px,color:#fff
+    classDef db fill:#ca8a04,stroke:#713f12,stroke-width:2px,color:#fff
+    classDef agent fill:#9333ea,stroke:#581c87,stroke-width:2px,color:#fff
+
+    User([👤 User]) -->|Submits Task| UI(Next.js Dashboard):::ui
+    UI -->|API Request| API(Next.js API Routes):::api
+    
+    API -->|Enqueues Task| Queue[(BullMQ / Redis)]:::queue
+    API -.->|Listens for SSE| PubSub[(Redis PubSub)]:::queue
+    
+    Worker(Background TSX Worker):::worker -->|Pulls Task| Queue
+    Worker -->|Initializes| Graph(LangGraph Orchestrator):::worker
+    
+    Graph --> Planner[🧠 Planner Agent]:::agent
+    Planner --> Analyzer[🔍 Analyzer Agent]:::agent
+    Analyzer --> Coder[💻 Coder Agent]:::agent
+    Coder --> Reviewer[👀 Reviewer Agent]:::agent
+    Reviewer --> QA[🧪 QA Agent]:::agent
+    QA --> Git[🌿 Git Agent]:::agent
+    
+    Graph -->|Saves State| DB[(PostgreSQL / Prisma)]:::db
+    Graph -->|Publishes Events| PubSub
+    PubSub -.->|Streams Live Logs| UI
+```
+
+### Core Technologies & Packages
+
+We selected the following stack to ensure extreme reliability, type safety, and a premium developer experience:
+
+- **Frontend & Core Framework**: 
+  - `next` (v15 App Router) / `react` / `react-dom`
+- **Premium UI & Styling**: 
+  - `tailwindcss` (v4) for utility-first styling.
+  - `framer-motion` for fluid, physics-based micro-interactions and layout transitions.
+  - `lucide-react` for crisp, highly-legible SVG iconography.
+  - `clsx` & `tailwind-merge` for dynamic class resolution.
+- **AI & Agent Orchestration**: 
+  - `@langchain/langgraph` to build stateful, multi-actor applications with LLMs.
+  - `@langchain/core` & `@langchain/openai` to interface seamlessly with OpenRouter and top-tier models.
+- **Background Processing & Real-time**: 
+  - `bullmq` & `ioredis` for robust, persistent job queuing and real-time Pub/Sub event broadcasting (Server-Sent Events).
+- **Database & Persistence**: 
+  - `@prisma/client` & `postgresql` for heavily typed, relational storage of runs, events, and AST mappings.
+- **AST Parsing & Git Integration**: 
+  - `ts-morph` for deep TypeScript Abstract Syntax Tree parsing (finding dependencies, exports, and interfaces).
+  - `simple-git`, `diff`, and `diff2html` for autonomous git branch management and code diff generation.
+- **Validation**: 
+  - `zod` for impenetrable runtime type schemas.
 
 ## 🚀 Getting Started
 
