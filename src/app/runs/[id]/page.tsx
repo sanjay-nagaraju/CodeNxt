@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, GitBranch, FolderGit2, CheckCircle2, Activity, TerminalSquare, XCircle, Code2, GitCommit, FileDiff } from "lucide-react";
+import { ArrowLeft, GitBranch, FolderGit2, CheckCircle2, Activity, TerminalSquare, XCircle, Code2, GitCommit, FileDiff, Play, Pause, Square } from "lucide-react";
 
 interface RunDetail {
   id: string;
@@ -79,12 +79,17 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
         if (
           data.message?.includes("completed successfully") ||
-          data.message?.includes("Workflow failed")
+          data.message?.includes("Workflow failed") ||
+          data.message?.includes("Task paused") ||
+          data.message?.includes("Task resumed") ||
+          data.message?.includes("Task cancelled")
         ) {
           setTimeout(() => {
-            evtSource.close();
+            if (data.message?.includes("completed") || data.message?.includes("failed") || data.message?.includes("cancelled")) {
+              evtSource.close();
+            }
             fetchRun();
-          }, 2000);
+          }, 1500);
         }
       } catch {
         // ignore
@@ -104,6 +109,25 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
       console.error("Failed to fetch run:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRunControl(action: "pause" | "resume" | "cancel") {
+    try {
+      // Optimistic update for UI responsiveness
+      setRun((prev) => prev ? { 
+        ...prev, 
+        status: action === "pause" ? "PAUSED" : action === "resume" ? "PENDING" : "CANCELLED" 
+      } : null);
+
+      await fetch(`/api/runs/${id}/control`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      setTimeout(fetchRun, 500);
+    } catch (err) {
+      console.error("Failed to control run:", err);
     }
   }
 
@@ -131,7 +155,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   ];
 
   const currentStageIndex = getStageIndex(run.status);
-  const isRunComplete = ["COMPLETED", "FAILED"].includes(run.status);
+  const isRunComplete = ["COMPLETED", "FAILED", "CANCELLED"].includes(run.status);
 
   function getAgentColor(agent: string): string {
     const colors: Record<string, string> = {
@@ -169,15 +193,46 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
               </span>
             </div>
             
-            {isRunComplete && (
-              <a
-                href={`/runs/${id}/diff`}
-                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors border border-zinc-200 dark:border-zinc-800"
-              >
-                <FileDiff className="w-4 h-4" />
-                View Diffs
-              </a>
-            )}
+            <div className="flex items-center gap-2">
+              {!isRunComplete && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {run.status !== "PAUSED" && (
+                    <button
+                      onClick={() => handleRunControl("pause")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                    >
+                      <Pause className="w-3.5 h-3.5" />
+                      Pause
+                    </button>
+                  )}
+                  {run.status === "PAUSED" && (
+                    <button
+                      onClick={() => handleRunControl("resume")}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      Resume
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleRunControl("cancel")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors"
+                  >
+                    <Square className="w-3 h-3 fill-current" />
+                    Stop
+                  </button>
+                </div>
+              )}
+              {isRunComplete && (
+                <a
+                  href={`/runs/${id}/diff`}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-sm font-medium transition-colors border border-zinc-200 dark:border-zinc-800"
+                >
+                  <FileDiff className="w-4 h-4" />
+                  View Diffs
+                </a>
+              )}
+            </div>
           </div>
           
           <h1 className="text-xl md:text-2xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight max-w-4xl">
@@ -187,11 +242,13 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-[13px] text-zinc-500">
             <span className={`inline-flex items-center gap-1.5 font-medium px-2 py-0.5 rounded-md ${
               run.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400" :
-              run.status === "FAILED" ? "bg-rose-500/10 text-rose-500 dark:text-rose-400" :
+              run.status === "FAILED" || run.status === "CANCELLED" ? "bg-rose-500/10 text-rose-500 dark:text-rose-400" :
+              run.status === "PAUSED" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
               "bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
             }`}>
               {run.status === "COMPLETED" ? <CheckCircle2 className="w-3.5 h-3.5" /> : 
-               run.status === "FAILED" ? <XCircle className="w-3.5 h-3.5" /> : 
+               run.status === "FAILED" || run.status === "CANCELLED" ? <XCircle className="w-3.5 h-3.5" /> : 
+               run.status === "PAUSED" ? <Pause className="w-3.5 h-3.5" /> :
                <Activity className="w-3.5 h-3.5" />}
               {run.status}
             </span>
