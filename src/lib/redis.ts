@@ -41,13 +41,17 @@ export function getRedisSub(): Redis {
 // Lazy proxies for backward compat
 export const redis = new Proxy({} as Redis, {
   get(_target, prop) {
-    return Reflect.get(getRedis(), prop);
+    const client = getRedis();
+    const value = Reflect.get(client, prop);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });
 
 export const redisSub = new Proxy({} as Redis, {
   get(_target, prop) {
-    return Reflect.get(getRedisSub(), prop);
+    const client = getRedisSub();
+    const value = Reflect.get(client, prop);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });
 

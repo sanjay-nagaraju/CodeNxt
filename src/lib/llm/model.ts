@@ -10,7 +10,7 @@ export function getModel(): ChatOpenAI {
   }
 
   const model = new ChatOpenAI({
-    model: process.env.OPENROUTER_MODEL || "glm-4.5-air",
+    model: process.env.OPENROUTER_MODEL || "qwen/qwen3-coder",
     configuration: {
       baseURL: "https://openrouter.ai/api/v1",
     },
