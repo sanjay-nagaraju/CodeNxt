@@ -3,13 +3,22 @@
 import { Activity, Home, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [modelInfo, setModelInfo] = useState<{ provider: string; model: string } | null>(null);
 
   const isHome = pathname === "/";
   const isRuns = pathname?.startsWith("/runs");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => setModelInfo(data))
+      .catch(() => setModelInfo({ provider: "Unknown", model: "—" }));
+  }, []);
 
   return (
     <aside className="w-[260px] bg-zinc-50 dark:bg-[#0A0A0A] border-r border-zinc-200 dark:border-zinc-900 flex flex-col shrink-0 transition-all">
@@ -59,8 +68,10 @@ export function Sidebar() {
             Engine
           </p>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-300">LangGraph</p>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-xs font-medium text-zinc-900 dark:text-zinc-300 truncate">
+              {modelInfo ? `${modelInfo.provider} · ${modelInfo.model}` : "Loading..."}
+            </p>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0 ml-2" />
           </div>
         </div>
       </div>
