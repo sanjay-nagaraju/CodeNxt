@@ -30,7 +30,7 @@ Your job is to:
 
 Rules:
 - Always read a file before modifying it
-- Write complete file contents (not patches)
+- Write complete, raw file contents as plain text (NOT patches, JSON arrays, or dictionaries)
 - Install dependencies before using them in code
 - Use TypeScript with proper types
 - Follow existing code patterns and conventions

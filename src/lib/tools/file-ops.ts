@@ -74,7 +74,7 @@ export const writeFileTool = tool(
       "Write content to a file, creating it if it doesn't exist or overwriting if it does. Parent directories are created automatically.",
     schema: z.object({
       filePath: z.string().describe("Relative path to the file from project root"),
-      content: z.string().describe("The full content to write to the file"),
+      content: z.string().describe("The COMPLETE, raw source code to write. Must be a single plain text string containing the actual code. DO NOT pass JSON arrays, objects, or partial patches."),
       projectPath: z.string().describe("Absolute path to the project root"),
     }),
   }
@@ -111,7 +111,7 @@ export const createFileTool = tool(
       "Create a new file with the given content. Fails if the file already exists. Parent directories are created automatically.",
     schema: z.object({
       filePath: z.string().describe("Relative path for the new file from project root"),
-      content: z.string().describe("Content to write to the new file"),
+      content: z.string().describe("The COMPLETE, raw source code to write. Must be a single plain text string containing the actual code. DO NOT pass JSON arrays, objects, or partial patches."),
       projectPath: z.string().describe("Absolute path to the project root"),
     }),
   }
