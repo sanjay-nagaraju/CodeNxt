@@ -1,11 +1,8 @@
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { AgentState, type AgentStateType } from "@/lib/agents/state";
-import { plannerAgent } from "@/lib/agents/planner";
-import { analyzerAgent } from "@/lib/agents/analyzer";
-import { coderAgent } from "@/lib/agents/coder";
-import { reviewerAgent } from "@/lib/agents/reviewer";
-import { qaAgent } from "@/lib/agents/qa";
+import { runMarkdownAgent } from "@/lib/agents/executor";
 import { gitSetupAgent, gitCommitAgent } from "@/lib/agents/git-agent";
+import { execSync } from "child_process";
 import { prisma } from "@/lib/db";
 import { scanRepository } from "@/lib/intelligence/scanner";
 import { getCachedRepoMap } from "@/lib/intelligence/cache";
@@ -48,7 +45,7 @@ async function plannerNode(state: AgentStateType): Promise<Partial<AgentStateTyp
     where: { id: state.runId },
     data: { status: "PLANNING" },
   });
-  const result = await plannerAgent(state);
+  const result = await runMarkdownAgent("planner", state);
 
   // Save plan to run
   if (result.plan) {
@@ -66,7 +63,7 @@ async function analyzerNode(state: AgentStateType): Promise<Partial<AgentStateTy
     where: { id: state.runId },
     data: { status: "ANALYZING" },
   });
-  const result = await analyzerAgent(state);
+  const result = await runMarkdownAgent("analyzer", state);
 
   if (result.analysis) {
     await prisma.run.update({
@@ -83,7 +80,7 @@ async function coderNode(state: AgentStateType): Promise<Partial<AgentStateType>
     where: { id: state.runId },
     data: { status: "CODING" },
   });
-  return coderAgent(state);
+  return runMarkdownAgent("coder", state);
 }
 
 async function buildCheckNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
@@ -91,8 +88,37 @@ async function buildCheckNode(state: AgentStateType): Promise<Partial<AgentState
     where: { id: state.runId },
     data: { status: "BUILDING" },
   });
-  // Build is already done in coder agent — this node just returns
-  return {};
+  await emitEvent({
+    runId: state.runId,
+    agent: "System",
+    message: "Running npm run build...",
+  });
+
+  try {
+    const output = execSync("npm run build", {
+      cwd: state.projectPath,
+      encoding: "utf-8",
+      maxBuffer: 1024 * 1024 * 10,
+      env: { ...process.env, FORCE_COLOR: "0" },
+    });
+    
+    return { buildResult: { success: true, output, errors: [] } };
+  } catch (error: any) {
+    const errorOutput = `${error.stderr || ""}\n${error.stdout || ""}`.trim();
+    const errorLines = errorOutput
+      .split("\n")
+      .filter((l) => l.includes("error") || l.includes("Error") || l.includes("TS") || l.includes("failed"))
+      .slice(0, 20);
+    
+    await emitEvent({
+      runId: state.runId,
+      agent: "System",
+      message: `Build failed: ${errorLines[0] || "Unknown error"}`,
+      level: "ERROR",
+    });
+
+    return { buildResult: { success: false, output: errorOutput, errors: errorLines.length ? errorLines : ["Build failed"] } };
+  }
 }
 
 async function reviewerNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
@@ -100,7 +126,7 @@ async function reviewerNode(state: AgentStateType): Promise<Partial<AgentStateTy
     where: { id: state.runId },
     data: { status: "REVIEWING" },
   });
-  const result = await reviewerAgent(state);
+  const result = await runMarkdownAgent("reviewer", state);
 
   if (result.reviewResult) {
     await prisma.run.update({
@@ -117,7 +143,7 @@ async function qaNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
     where: { id: state.runId },
     data: { status: "QA" },
   });
-  const result = await qaAgent(state);
+  const result = await runMarkdownAgent("qa", state);
 
   if (result.qaResult) {
     await prisma.run.update({
