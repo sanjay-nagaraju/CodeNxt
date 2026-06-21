@@ -1,26 +1,52 @@
 {
-  "name": "temp-init",
+  "name": "codenxt",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker": "tsx src/worker.ts",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "codenxt": "tsx bin/codenxt.ts"
+  },
+  "bin": {
+    "codenxt": "./bin/codenxt.ts"
   },
   "dependencies": {
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "@langchain/langgraph": "^0.2",
+    "@langchain/core": "^0.3",
+    "@langchain/openai": "^0.5",
+    "@prisma/client": "^6",
+    "bullmq": "^5",
+    "ioredis": "^5",
+    "simple-git": "^3",
+    "ts-morph": "^28",
+    "zod": "^3",
+    "lucide-react": "^0.500",
+    "class-variance-authority": "^0.7",
+    "clsx": "^2",
+    "tailwind-merge": "^3",
+    "diff2html": "^3",
+    "diff": "^7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/diff": "^7",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "prisma": "^6",
+    "tsx": "^4"
   }
 }

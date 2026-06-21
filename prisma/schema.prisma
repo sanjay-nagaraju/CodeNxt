@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RunStatus {
+  PENDING
+  PLANNING
+  ANALYZING
+  CODING
+  BUILDING
+  REVIEWING
+  QA
+  COMMITTING
+  COMPLETED
+  FAILED
+}
+
+enum SymbolType {
+  COMPONENT
+  FUNCTION
+  CLASS
+  HOOK
+  CONTEXT
+  TYPE
+  INTERFACE
+  ENUM
+  VARIABLE
+}
+
+enum EventLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  path          String   @unique
+  defaultBranch String   @default("main")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  runs     Run[]
+  symbols  Symbol[]
+  memories Memory[]
+
+  @@map("projects")
+}
+
+model Run {
+  id         String    @id @default(cuid())
+  projectId  String
+  task       String
+  status     RunStatus @default(PENDING)
+  branchName String?
+  plan       Json?
+  analysis   Json?
+  review     Json?
+  qa         Json?
+  error      String?
+  startedAt  DateTime?
+  completedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events  Event[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("runs")
+}
+
+model Event {
+  id        String     @id @default(cuid())
+  runId     String
+  agent     String
+  message   String
+  level     EventLevel @default(INFO)
+  metadata  Json?
+  createdAt DateTime   @default(now())
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([agent])
+  @@map("events")
+}
+
+model Symbol {
+  id         String     @id @default(cuid())
+  projectId  String
+  name       String
+  type       SymbolType
+  path       String
+  line       Int
+  exportType String?
+  signature  String?
+
+  project             Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dependedOnBy        Dependency[] @relation("TargetSymbol")
+  dependsOn           Dependency[] @relation("SourceSymbol")
+
+  @@unique([projectId, name, path, line])
+  @@index([projectId])
+  @@index([name])
+  @@index([type])
+  @@map("symbols")
+}
+
+model Dependency {
+  id             String @id @default(cuid())
+  sourceSymbolId String
+  targetSymbolId String
+
+  source Symbol @relation("SourceSymbol", fields: [sourceSymbolId], references: [id], onDelete: Cascade)
+  target Symbol @relation("TargetSymbol", fields: [targetSymbolId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceSymbolId, targetSymbolId])
+  @@map("dependencies")
+}
+
+model Memory {
+  id           String   @id @default(cuid())
+  projectId    String
+  task         String
+  solution     String
+  filesChanged Json
+  createdAt    DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("memories")
+}
