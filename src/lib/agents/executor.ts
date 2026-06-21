@@ -47,7 +47,7 @@ export async function runMarkdownAgent(
       console.warn(`[Executor] Warning: Tool ${toolName} requested by ${agentName} but not found in availableTools`);
     }
     return tool;
-  }).filter(Boolean);
+  }).filter((tool): tool is NonNullable<typeof tool> => Boolean(tool)) as any[];
 
   const model = getModel();
   const modelWithTools = toolsToBind.length > 0 ? model.bindTools(toolsToBind) : model;
@@ -152,7 +152,7 @@ export async function runMarkdownAgent(
       });
 
       try {
-        const result = await tool.invoke(toolCall.args);
+        const result = await (tool as any).invoke(toolCall.args);
         currentMessages.push(
           new ToolMessage({
             content: typeof result === "string" ? result : JSON.stringify(result),

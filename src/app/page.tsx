@@ -82,7 +82,7 @@ export default function HomePage() {
       setProjectId(newProject.id);
     } catch (err) {
       console.error(err);
-      alert("Failed to open folder picker. Make sure you are running locally.");
+      console.log("Failed to open folder picker. Make sure you are running locally.");
     } finally {
       setIsBrowsing(false);
     }

@@ -8,12 +8,12 @@ export interface TaskJobData {
   task: string;
 }
 
-let taskQueue: Queue<TaskJobData> | null = null;
+let taskQueue: any = null;
 
-export function getTaskQueue(): Queue<TaskJobData> {
+export function getTaskQueue(): any {
   if (!taskQueue) {
-    taskQueue = new Queue<TaskJobData>("codenxt-tasks", {
-      connection: getQueueConnection(),
+    taskQueue = new Queue("codenxt-tasks", {
+      connection: getQueueConnection() as any,
       defaultJobOptions: {
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 50 },

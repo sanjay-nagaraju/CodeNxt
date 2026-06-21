@@ -51,7 +51,7 @@ async function plannerNode(state: AgentStateType): Promise<Partial<AgentStateTyp
   if (result.plan) {
     await prisma.run.update({
       where: { id: state.runId },
-      data: { plan: result.plan as unknown as Record<string, unknown> },
+      data: { plan: result.plan as any },
     });
   }
 
@@ -68,7 +68,7 @@ async function analyzerNode(state: AgentStateType): Promise<Partial<AgentStateTy
   if (result.analysis) {
     await prisma.run.update({
       where: { id: state.runId },
-      data: { analysis: result.analysis as unknown as Record<string, unknown> },
+      data: { analysis: result.analysis as any },
     });
   }
 
@@ -131,7 +131,7 @@ async function reviewerNode(state: AgentStateType): Promise<Partial<AgentStateTy
   if (result.reviewResult) {
     await prisma.run.update({
       where: { id: state.runId },
-      data: { review: result.reviewResult as unknown as Record<string, unknown> },
+      data: { review: result.reviewResult as any },
     });
   }
 
@@ -148,7 +148,7 @@ async function qaNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
   if (result.qaResult) {
     await prisma.run.update({
       where: { id: state.runId },
-      data: { qa: result.qaResult as unknown as Record<string, unknown> },
+      data: { qa: result.qaResult as any },
     });
   }
 
