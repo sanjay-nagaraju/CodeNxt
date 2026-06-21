@@ -33,6 +33,7 @@ export async function POST(
 
   if (action === "pause") {
     await setRunSignal(id, "pause");
+    await prisma.run.update({ where: { id }, data: { status: "PAUSED" } });
     return NextResponse.json({ status: "pause_requested" });
   }
 
@@ -47,6 +48,7 @@ export async function POST(
 
   if (action === "cancel") {
     await setRunSignal(id, "cancel");
+    await prisma.run.update({ where: { id }, data: { status: "CANCELLED" } });
     return NextResponse.json({ status: "cancel_requested" });
   }
 

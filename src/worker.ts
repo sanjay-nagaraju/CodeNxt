@@ -40,7 +40,13 @@ async function processTask(job: Job<TaskJobData>): Promise<void> {
 
     console.log(`[Worker] Task completed: "${task}" (run: ${runId})`);
   } catch (error: unknown) {
-    const err = error as { message?: string };
+    const err = error as { message?: string; name?: string };
+    
+    if (err.name === "CancelledError") {
+      console.log(`[Worker] Task cancelled: (run: ${runId})`);
+      return;
+    }
+
     console.error(`[Worker] Task failed: ${err.message}`);
 
     try {
