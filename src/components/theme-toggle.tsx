@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 
 export function ThemeToggle() {
   const { theme, setTheme, systemTheme } = useTheme();
@@ -35,7 +36,9 @@ export function ThemeToggle() {
     );
 
     const transition = document.startViewTransition(() => {
-      setTheme(newTheme);
+      flushSync(() => {
+        setTheme(newTheme);
+      });
     });
 
     transition.ready.then(() => {
