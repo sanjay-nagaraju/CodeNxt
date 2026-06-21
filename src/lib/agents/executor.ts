@@ -79,9 +79,17 @@ export async function runMarkdownAgent(
     }
   }
 
+  const humanContent: any[] = [{ type: "text", text: contextMsg }];
+  if (state.image) {
+    humanContent.push({
+      type: "image_url",
+      image_url: { url: state.image },
+    });
+  }
+
   const messages = [
     new SystemMessage(systemPromptTemplate),
-    new HumanMessage(contextMsg),
+    new HumanMessage({ content: humanContent }),
   ];
 
   // 4. Execution loop

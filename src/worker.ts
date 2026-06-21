@@ -35,6 +35,7 @@ async function processTask(job: Job<TaskJobData>): Promise<void> {
       projectPath,
       runId,
       branchName: "",
+      image: job.data.image || null,
       maxRetries: 3,
     });
 

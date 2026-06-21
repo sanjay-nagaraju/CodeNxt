@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Folder, Sparkles, Code2, GitCommit, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import { Play, Folder, Sparkles, Code2, GitCommit, CheckCircle2, ChevronRight, Loader2, Paperclip, Image as ImageIcon, X } from "lucide-react";
 
 const AGENT_STAGES = [
   { name: "Planner", icon: <ClipboardIcon className="w-4 h-4" />, description: "Analyzing requirements & creating plan" },
@@ -37,8 +37,10 @@ export default function HomePage() {
   const [projects, setProjects] = useState<Array<{ id: string; name: string; path: string }>>([]);
   const [projectId, setProjectId] = useState<string>("");
   const [isBrowsing, setIsBrowsing] = useState(false);
+  const [imageFile, setImageFile] = useState<string | null>(null);
 
   const logEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -88,6 +90,17 @@ export default function HomePage() {
     }
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageFile(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!task.trim() || isSubmitting || !projectId) return;
@@ -100,11 +113,12 @@ export default function HomePage() {
       const res = await fetch("/api/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, task: task.trim() }),
+        body: JSON.stringify({ projectId, task: task.trim(), image: imageFile }),
       });
 
       const run = await res.json();
       setActiveRunId(run.id);
+      setImageFile(null);
 
       const evtSource = new EventSource(`/api/runs/${run.id}/events`);
 
@@ -231,8 +245,37 @@ export default function HomePage() {
                 rows={activeRunId ? 2 : 4}
                 className="w-full bg-transparent px-3 py-2 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 resize-none focus:outline-none text-base transition-all duration-300"
                 disabled={isSubmitting}
-                autoFocus
+                />
+              
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                className="hidden" 
               />
+              
+              <AnimatePresence>
+                {imageFile && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="px-3 pb-2"
+                  >
+                    <div className="relative inline-block mt-2">
+                      <img src={imageFile} alt="Upload preview" className="h-16 w-auto rounded-md border border-zinc-200 dark:border-zinc-700 object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => setImageFile(null)}
+                        className="absolute -top-2 -right-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-full p-0.5 hover:scale-110 transition-transform"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               <div className="flex items-center justify-between px-3 pb-2 pt-2">
                 <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-500">
@@ -241,6 +284,16 @@ export default function HomePage() {
                       <Loader2 className="w-3 h-3 animate-spin" />
                       Running autonomous workflow...
                     </motion.div>
+                  )}
+                  {!isSubmitting && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                      title="Attach image"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
                 

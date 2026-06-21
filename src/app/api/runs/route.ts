@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { projectId, task } = body;
+  const { projectId, task, image } = body;
 
   if (!projectId || !task) {
     return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     data: {
       projectId,
       task,
+      image,
       status: "PENDING",
     },
   });
@@ -57,9 +58,10 @@ export async function POST(request: NextRequest) {
   const queue = getTaskQueue();
   await queue.add("process-task", {
     runId: run.id,
-    projectId,
+    projectId: project.id,
     projectPath: project.path,
-    task,
+    task: run.task,
+    image: run.image,
   });
 
   return NextResponse.json(run, { status: 201 });

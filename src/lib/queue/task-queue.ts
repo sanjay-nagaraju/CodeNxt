@@ -6,6 +6,7 @@ export interface TaskJobData {
   projectId: string;
   projectPath: string;
   task: string;
+  image?: string | null;
 }
 
 let taskQueue: any = null;

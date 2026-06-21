@@ -87,6 +87,10 @@ export const AgentState = Annotation.Root({
   projectId: Annotation<string>(),
   runId: Annotation<string>(),
   branchName: Annotation<string>(),
+  image: Annotation<string | null>({
+    reducer: (_prev, next) => next,
+    default: () => null,
+  }),
 
   // Data flowing through the pipeline
   repoMap: Annotation<RepoMap | null>({

@@ -60,6 +60,7 @@ model Run {
   task       String
   status     RunStatus @default(PENDING)
   branchName String?
+  image      String?
   plan       Json?
   analysis   Json?
   review     Json?
